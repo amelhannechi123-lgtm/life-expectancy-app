@@ -2,28 +2,57 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-st.title("Life Expectancy Analysis App")
+st.title("📊 Life Expectancy Analysis App")
 
+# --- Function to automatically detect life expectancy column ---
+def find_life_expectancy_column(df):
+    for col in df.columns:
+        col_clean = col.lower().replace(" ", "").replace("_", "")
+        if "lifeexpectancy" in col_clean:
+            return col
+    return None
+
+# --- Upload CSV ---
 uploaded_file = st.file_uploader("Upload Kaggle CSV here", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
-    st.success("File loaded successfully!")
+
+    st.success("✔ File loaded successfully!")
     st.write(df.head())
 
-    # Choose country
-    if "Country" in df.columns:
-        country = st.selectbox("Choose a country", df["Country"].unique())
+    # Normalize column names for internal use
+    df.columns = [c.strip() for c in df.columns]
 
-        df_country = df[df["Country"] == country]
+    # Detect columns automatically
+    life_col = find_life_expectancy_column(df)
+    country_col = None
+    year_col = None
 
-        if "Life expectancy" in df.columns:
-            plt.plot(df_country["Year"], df_country["Life expectancy"])
-            plt.xlabel("Year")
-            plt.ylabel("Life Expectancy")
-            plt.title(f"Life Expectancy Evolution — {country}")
-            st.pyplot(plt)
-        else:
-            st.warning("'Life expectancy' column not found in dataset.")
-    else:
-        st.warning("'Country' column not found in dataset.")
+    # Try to find 'Country' column
+    for col in df.columns:
+        if col.lower().replace(" ", "") == "country":
+            country_col = col
+        if col.lower().replace(" ", "") == "year":
+            year_col = col
+
+    # --- Error handling ---
+    if life_col is None:
+        st.error("❌ 'Life expectancy' column not found.")
+        st.write("Detected columns:", df.columns.tolist())
+        st.stop()
+
+    if country_col is None:
+        st.error("❌ 'Country' column not found.")
+        st.write("Detected columns:", df.columns.tolist())
+        st.stop()
+
+    if year_col is None:
+        st.error("❌ 'Year' column not found.")
+        st.write("Detected columns:", df.columns.tolist())
+        st.stop()
+
+    # --- UI selection ---
+    country = st.selectbox("🌍 Choose a country", df[country_col].unique())
+
+
