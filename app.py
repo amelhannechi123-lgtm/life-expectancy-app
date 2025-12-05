@@ -18,22 +18,23 @@ uploaded_file = st.file_uploader("Upload Kaggle CSV here", type=["csv"])
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
+    # CLEAN column names BEFORE ANYTHING
+    df.columns = [c.strip() for c in df.columns]
+
     st.success("✔ File loaded successfully!")
     st.write(df.head())
-
-    # Normalize column names for internal use
-    df.columns = [c.strip() for c in df.columns]
 
     # Detect columns automatically
     life_col = find_life_expectancy_column(df)
     country_col = None
     year_col = None
 
-    # Try to find 'Country' column
+    # Try to find 'Country' and 'Year'
     for col in df.columns:
-        if col.lower().replace(" ", "") == "country":
+        col_clean = col.lower().replace(" ", "")
+        if col_clean == "country":
             country_col = col
-        if col.lower().replace(" ", "") == "year":
+        if col_clean == "year":
             year_col = col
 
     # --- Error handling ---
@@ -53,6 +54,22 @@ if uploaded_file:
         st.stop()
 
     # --- UI selection ---
-    country = st.selectbox("🌍 Choose a country", df[country_col].unique())
+    country = st.selectbox("🌍 Choose a country", sorted(df[country_col].unique()))
+
+    # --- Filter data ---
+    df_country = df[df[country_col] == country].sort_values(year_col)
+
+    st.write(f"### 📈 Life Expectancy for **{country}**")
+    st.write(df_country[[year_col, life_col]])
+
+    # --- Plot ---
+    fig, ax = plt.subplots()
+    ax.plot(df_country[year_col], df_country[life_col], marker="o")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Life Expectancy")
+    ax.set_title(f"Life Expectancy Trend - {country}")
+
+    st.pyplot(fig)
+
 
 
